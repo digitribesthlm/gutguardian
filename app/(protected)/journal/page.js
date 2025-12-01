@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Save, AlertCircle, Loader2 } from 'lucide-react';
+import { Save, AlertCircle, Loader2, AlertTriangle, CheckCircle, HelpCircle, Plus } from 'lucide-react';
 import { useAppState } from '@/lib/useAppState';
 import { analyzeTriggers } from '@/lib/geminiService';
 
@@ -14,7 +14,7 @@ const SymptomSeverity = {
 };
 
 export default function JournalPage() {
-  const { logs, addLog } = useAppState();
+  const { logs, addLog, settings, updateSettings } = useAppState();
   const [meals, setMeals] = useState('');
   const [mood, setMood] = useState(5);
   const [stress, setStress] = useState(5);
@@ -49,7 +49,7 @@ export default function JournalPage() {
 
   const handleAnalysis = async () => {
     if (logs.length < 3) {
-      setAiAnalysis('Please log at least 3 days of data for an accurate analysis.');
+      setAiAnalysis({ error: 'Please log at least 3 days of data for an accurate analysis.' });
       return;
     }
     setAnalyzing(true);
@@ -57,10 +57,40 @@ export default function JournalPage() {
       const result = await analyzeTriggers(logs);
       setAiAnalysis(result);
     } catch (e) {
-      setAiAnalysis('Failed to connect to AI service.');
+      setAiAnalysis({ error: 'Failed to connect to AI service.' });
     } finally {
       setAnalyzing(false);
     }
+  };
+
+  const addToTriggerFoods = (food) => {
+    if (!settings.triggerFoods.includes(food)) {
+      updateSettings({
+        triggerFoods: [...settings.triggerFoods, food],
+      });
+    }
+  };
+
+  const getConfidenceIcon = (confidence) => {
+    switch (confidence) {
+      case 'high':
+        return <AlertTriangle className="w-4 h-4 text-rose-500" />;
+      case 'medium':
+        return <AlertCircle className="w-4 h-4 text-amber-500" />;
+      case 'low':
+        return <HelpCircle className="w-4 h-4 text-slate-400" />;
+      default:
+        return <HelpCircle className="w-4 h-4 text-slate-400" />;
+    }
+  };
+
+  const getConfidenceBadge = (confidence) => {
+    const styles = {
+      high: 'bg-rose-100 text-rose-700 border-rose-200',
+      medium: 'bg-amber-100 text-amber-700 border-amber-200',
+      low: 'bg-slate-100 text-slate-600 border-slate-200',
+    };
+    return styles[confidence] || styles.low;
   };
 
   const SeverityButton = ({ label, value, current, onChange }) => (
@@ -76,6 +106,158 @@ export default function JournalPage() {
       {label}
     </button>
   );
+
+  const renderAnalysis = () => {
+    if (!aiAnalysis) return null;
+
+    // Error state
+    if (aiAnalysis.error) {
+      return (
+        <div className="bg-rose-50 p-4 rounded-xl border border-rose-100 text-rose-700 text-sm animate-fade-in">
+          <p>{aiAnalysis.error}</p>
+        </div>
+      );
+    }
+
+    // Raw text fallback
+    if (aiAnalysis.raw) {
+      return (
+        <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-slate-700 text-sm animate-fade-in">
+          <h3 className="font-semibold text-indigo-700 mb-2 flex items-center">
+            <AlertCircle className="w-4 h-4 mr-2" /> AI Insight
+          </h3>
+          <p className="whitespace-pre-line">{aiAnalysis.raw}</p>
+        </div>
+      );
+    }
+
+    // Structured analysis
+    if (aiAnalysis.structured) {
+      const { triggers, summary, recommendations, stressImpact } = aiAnalysis.structured;
+
+      return (
+        <div className="space-y-4 animate-fade-in">
+          {/* Summary */}
+          <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+            <h3 className="font-semibold text-indigo-700 mb-2 flex items-center">
+              <AlertCircle className="w-4 h-4 mr-2" /> Analysis Summary
+            </h3>
+            <p className="text-sm text-slate-700">{summary}</p>
+          </div>
+
+          {/* Trigger Table */}
+          {triggers && triggers.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                <h3 className="font-semibold text-slate-800 flex items-center">
+                  <AlertTriangle className="w-4 h-4 mr-2 text-rose-500" />
+                  Identified Triggers (Priority Order)
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-slate-600">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium">Priority</th>
+                      <th className="px-4 py-2 text-left font-medium">Food</th>
+                      <th className="px-4 py-2 text-left font-medium">Confidence</th>
+                      <th className="px-4 py-2 text-left font-medium">Category</th>
+                      <th className="px-4 py-2 text-left font-medium">Symptoms</th>
+                      <th className="px-4 py-2 text-left font-medium">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {triggers.map((trigger, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50">
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                            idx === 0 ? 'bg-rose-100 text-rose-700' :
+                            idx === 1 ? 'bg-amber-100 text-amber-700' :
+                            'bg-slate-100 text-slate-600'
+                          }`}>
+                            {idx + 1}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-800">
+                          {trigger.food}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getConfidenceBadge(trigger.confidence)}`}>
+                            {getConfidenceIcon(trigger.confidence)}
+                            {trigger.confidence}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {trigger.category}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {trigger.symptoms?.map((s, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {settings.triggerFoods.includes(trigger.food) ? (
+                            <span className="inline-flex items-center text-xs text-emerald-600">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Added
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => addToTriggerFoods(trigger.food)}
+                              className="inline-flex items-center text-xs text-teal-600 hover:text-teal-700 font-medium"
+                            >
+                              <Plus className="w-3 h-3 mr-1" />
+                              Add to triggers
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {triggers[0]?.notes && (
+                <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-600">
+                  <strong>Note:</strong> {triggers[0].notes}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Stress Impact */}
+          {stressImpact && (
+            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+              <h4 className="font-semibold text-amber-800 mb-1 text-sm">Stress Impact</h4>
+              <p className="text-sm text-amber-900/80">{stressImpact}</p>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {recommendations && recommendations.length > 0 && (
+            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+              <h4 className="font-semibold text-emerald-800 mb-3 text-sm">Recommendations</h4>
+              <ol className="space-y-2">
+                {recommendations.map((rec, idx) => (
+                  <li key={idx} className="flex items-start text-sm text-emerald-900/80">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-200 text-emerald-800 text-xs font-bold mr-2 flex-shrink-0">
+                      {idx + 1}
+                    </span>
+                    {rec}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -95,14 +277,7 @@ export default function JournalPage() {
         </button>
       </div>
 
-      {aiAnalysis && (
-        <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-slate-700 text-sm animate-fade-in">
-          <h3 className="font-semibold text-indigo-700 mb-2 flex items-center">
-            <AlertCircle className="w-4 h-4 mr-2" /> AI Insight
-          </h3>
-          <p className="whitespace-pre-line">{aiAnalysis}</p>
-        </div>
-      )}
+      {renderAnalysis()}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Food Section */}
@@ -187,4 +362,3 @@ export default function JournalPage() {
     </div>
   );
 }
-
