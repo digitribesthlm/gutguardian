@@ -12,27 +12,38 @@ export async function POST(request) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    const triggers = triggerFoods.length > 0
-      ? `CRITICAL: You MUST EXCLUDE these known trigger foods: ${triggerFoods.join(', ')}.`
+    const triggerWarning = triggerFoods.length > 0
+      ? `
+
+CRITICAL DIETARY RESTRICTIONS - MUST FOLLOW:
+The user has identified these as personal trigger foods that cause them health problems:
+- ${triggerFoods.join('\n- ')}
+
+You MUST NOT use any of these ingredients or any variation/derivative of them.
+This is a medical necessity. If the recipe request conflicts with these restrictions, suggest an alternative without the trigger food.
+`
       : '';
 
-    const prompt = `Create a delicious, strict AIP (Autoimmune Protocol) diet recipe suitable for the ${stage} phase. 
-    Focus on anti-inflammatory ingredients. 
-    Recipe Request / Primary Ingredients: "${input}".
-    
-    ${triggers}
-    
-    Ensure it contains NO gluten, dairy, nightshades, soy, eggs, nuts, or seeds if in the Elimination phase.
-    If in Reintroduction or Maintenance, only include non-AIP ingredients if explicitly requested, otherwise stick to safe AIP foods.
-    
-    Return ONLY valid JSON in this exact format:
-    {
-      "title": "Recipe Name",
-      "ingredients": ["ingredient 1", "ingredient 2"],
-      "instructions": ["step 1", "step 2"],
-      "prepTime": "30 minutes",
-      "phase": "${stage}"
-    }`;
+    const prompt = `You are a specialized AIP (Autoimmune Protocol) diet chef helping someone with autoimmune digestive issues.
+
+Create a delicious, strict AIP diet recipe suitable for the ${stage} phase.
+Focus on anti-inflammatory ingredients.
+Recipe Request / Primary Ingredients: "${input}".
+${triggerWarning}
+Standard AIP Rules for ${stage} phase:
+- Elimination phase: NO gluten, dairy, nightshades (tomatoes, peppers, potatoes, eggplant), soy, eggs, nuts, seeds, legumes, alcohol, coffee, refined sugars.
+- Reintroduction/Maintenance: Only include reintroduced foods if explicitly requested.
+
+IMPORTANT: Before returning, verify NONE of the user's trigger foods listed above are in the ingredients.
+
+Return ONLY valid JSON in this exact format:
+{
+  "title": "Recipe Name",
+  "ingredients": ["ingredient 1", "ingredient 2"],
+  "instructions": ["step 1", "step 2"],
+  "prepTime": "30 minutes",
+  "phase": "${stage}"
+}`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
