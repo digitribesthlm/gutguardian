@@ -12,6 +12,7 @@ import {
   Plus,
   ArrowRight,
   Check,
+  Star,
 } from 'lucide-react';
 import { useAppState } from '@/lib/useAppState';
 import { generateAIPRecipe, generateMealSuggestions } from '@/lib/geminiService';
@@ -45,7 +46,7 @@ export default function RecipesPage() {
     setActiveCourse(null);
 
     try {
-      const result = await generateAIPRecipe(input, settings.currentStage, settings.triggerFoods);
+      const result = await generateAIPRecipe(input, settings.currentStage, settings.triggerFoods, settings.favoriteFoods || []);
       setRecipe(result);
     } catch (e) {
       setError('Could not generate recipe. Please check your API key and try again.');
@@ -62,7 +63,7 @@ export default function RecipesPage() {
     setError('');
 
     try {
-      const results = await generateMealSuggestions(course, settings.currentStage, settings.triggerFoods);
+      const results = await generateMealSuggestions(course, settings.currentStage, settings.triggerFoods, settings.favoriteFoods || []);
       setSuggestions(results);
     } catch (e) {
       setError(`Could not get ${course} suggestions.`);
@@ -167,12 +168,23 @@ export default function RecipesPage() {
           </button>
         </div>
 
+        {/* Favorite foods info */}
+        {settings.favoriteFoods?.length > 0 && (
+          <div className="flex items-start p-3 bg-amber-50 rounded-lg border border-amber-100">
+            <Star className="w-4 h-4 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+            <div className="text-xs text-amber-800">
+              <strong>Prioritizing:</strong>{' '}
+              <span className="font-medium">{settings.favoriteFoods.join(', ')}</span>
+            </div>
+          </div>
+        )}
+
         {/* Trigger warning info */}
         {settings.triggerFoods.length > 0 && (
           <div className="flex items-start p-3 bg-rose-50 rounded-lg border border-rose-100">
             <AlertOctagon className="w-4 h-4 text-rose-500 mt-0.5 mr-2 flex-shrink-0" />
             <div className="text-xs text-rose-800">
-              <strong>Safety Check:</strong> Excluding triggers:{' '}
+              <strong>Excluding:</strong>{' '}
               <span className="font-medium">{settings.triggerFoods.join(', ')}</span>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, UtensilsCrossed, GraduationCap, ShoppingBasket, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, UtensilsCrossed, GraduationCap, ShoppingBasket, LogOut, Apple } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function NavBar() {
@@ -40,9 +40,9 @@ export default function NavBar() {
             <ShoppingBasket className="w-6 h-6 mb-1" />
             <span>Shop</span>
           </Link>
-          <Link href="/learn" className={linkClass('/learn')}>
-            <GraduationCap className="w-6 h-6 mb-1" />
-            <span>Learn</span>
+          <Link href="/foods" className={linkClass('/foods')}>
+            <Apple className="w-6 h-6 mb-1" />
+            <span>Foods</span>
           </Link>
         </div>
 

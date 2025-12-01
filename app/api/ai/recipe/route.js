@@ -8,7 +8,7 @@ export async function POST(request) {
       return NextResponse.json({ message: 'AI service not configured' }, { status: 500 });
     }
 
-    const { input, stage, triggerFoods = [] } = await request.json();
+    const { input, stage, triggerFoods = [], favoriteFoods = [] } = await request.json();
 
     const ai = new GoogleGenAI({ apiKey });
 
@@ -24,17 +24,28 @@ This is a medical necessity. If the recipe request conflicts with these restrict
 `
       : '';
 
+    const favoriteSection = favoriteFoods.length > 0
+      ? `
+
+PREFERRED INGREDIENTS - INCORPORATE WHEN POSSIBLE:
+The user loves these foods. Try to include them in the recipe if they complement the dish:
+- ${favoriteFoods.join('\n- ')}
+`
+      : '';
+
     const prompt = `You are a specialized AIP (Autoimmune Protocol) diet chef helping someone with autoimmune digestive issues.
 
 Create a delicious, strict AIP diet recipe suitable for the ${stage} phase.
 Focus on anti-inflammatory ingredients.
 Recipe Request / Primary Ingredients: "${input}".
-${triggerWarning}
+${triggerWarning}${favoriteSection}
 Standard AIP Rules for ${stage} phase:
 - Elimination phase: NO gluten, dairy, nightshades (tomatoes, peppers, potatoes, eggplant), soy, eggs, nuts, seeds, legumes, alcohol, coffee, refined sugars.
 - Reintroduction/Maintenance: Only include reintroduced foods if explicitly requested.
 
-IMPORTANT: Before returning, verify NONE of the user's trigger foods listed above are in the ingredients.
+IMPORTANT: 
+1. Verify NONE of the user's trigger foods are in the ingredients.
+2. Try to incorporate the user's favorite foods where appropriate.
 
 Return ONLY valid JSON in this exact format:
 {

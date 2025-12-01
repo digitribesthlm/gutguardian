@@ -21,6 +21,7 @@ export async function GET(request) {
         currentStage: 'Elimination',
         startDate: Date.now(),
         triggerFoods: [],
+        favoriteFoods: [],
       };
     }
 
