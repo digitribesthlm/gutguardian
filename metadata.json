@@ -1,0 +1,5 @@
+{
+  "name": "GutGuardian",
+  "description": "A comprehensive AIP (Autoimmune Protocol) companion app to track diet, symptoms, and mood. Features AI-powered recipe generation and trigger detection to help manage autoimmune stomach issues.",
+  "requestFramePermissions": []
+}
